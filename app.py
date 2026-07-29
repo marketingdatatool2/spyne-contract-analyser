@@ -107,7 +107,7 @@ def _run_analysis():
             _emit({"type": "processing", "message": f"[{i}/{total}] Contract {cid}", "current": i, "total": total})
 
             try:
-                update_raw_status(contract["row_num"], "Processing")
+                update_raw_status(cid, "Processing")
 
                 _emit({"type": "log", "message": "  → Fetching contract document..."})
                 text = fetch_contract_text(link)
@@ -126,7 +126,7 @@ def _run_analysis():
                 write_to_analyser(rows)
 
                 final_status = rows[0].get("_status", "Processed") if rows else "Processed"
-                update_raw_status(contract["row_num"], final_status)
+                update_raw_status(cid, final_status)
 
                 if final_status == "Manual Review Needed":
                     _emit({"type": "warning", "message": f"  ⚠ Contract {cid} needs manual review — {len(rows)} row(s) written.", "current": i, "total": total})
@@ -135,7 +135,7 @@ def _run_analysis():
                     success_count += 1
 
             except Exception as exc:
-                update_raw_status(contract["row_num"], "Failed")
+                update_raw_status(cid, "Failed")
                 _emit({"type": "error", "message": f"  ✗ Contract {cid} failed: {exc}", "current": i, "total": total})
                 fail_count += 1
 

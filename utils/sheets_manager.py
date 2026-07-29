@@ -108,7 +108,7 @@ def get_unprocessed_contracts():
     return contracts
 
 
-def update_raw_status(row_num, status):
+def update_raw_status(contract_id, status):
     sh = _open_sheet()
     raw = sh.worksheet("Contract Raw")
     headers = raw.row_values(1)
@@ -116,10 +116,19 @@ def update_raw_status(row_num, status):
     if "Status" not in headers:
         status_col_idx = len(headers) + 1
         raw.update_cell(1, status_col_idx, "Status")
+        headers.append("Status")
     else:
         status_col_idx = headers.index("Status") + 1
 
-    raw.update_cell(row_num, status_col_idx, status)
+    id_col_idx = _find_col(headers, RAW_COLUMN_MAP["contract_id"])
+    if not id_col_idx:
+        return
+
+    all_values = raw.get_all_values()
+    for row_num, row in enumerate(all_values[1:], start=2):
+        if len(row) >= id_col_idx and str(row[id_col_idx - 1]).strip() == str(contract_id).strip():
+            raw.update_cell(row_num, status_col_idx, status)
+            return
 
 
 # ── Contract Analyser helpers ─────────────────────────────────────────────────
