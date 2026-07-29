@@ -24,13 +24,13 @@ ANALYSER_COLUMNS = [
     "Contract Link",
 ]
 
-RAW_EXPECTED_COLUMNS = [
-    "Contract ID",
-    "Contracted Month",
-    "Contract Sent Date",
-    "Contract Signed Date",
-    "Contract Link",
-]
+RAW_COLUMN_MAP = {
+    "contract_id":            "Contract ID",
+    "contracted_month":       "Agreement Month",
+    "contract_sent_date":     "Agreement Sent Date",
+    "contract_signed_date":   "Agreement Sign Date",
+    "contract_link":          "Agreement Link",
+}
 
 
 def _get_client():
@@ -89,8 +89,8 @@ def get_unprocessed_contracts():
         if status in terminal_statuses:
             continue
 
-        contract_id = cell("Contract ID")
-        contract_link = cell("Contract Link")
+        contract_id = cell(RAW_COLUMN_MAP["contract_id"])
+        contract_link = cell(RAW_COLUMN_MAP["contract_link"])
 
         if not contract_id or not contract_link:
             continue
@@ -99,9 +99,9 @@ def get_unprocessed_contracts():
             "row_num": row_num,
             "contract_id": contract_id,
             "contract_link": contract_link,
-            "contracted_month": cell("Contracted Month"),
-            "contract_sent_date": cell("Contract Sent Date"),
-            "contract_signed_date": cell("Contract Signed Date"),
+            "contracted_month": cell(RAW_COLUMN_MAP["contracted_month"]),
+            "contract_sent_date": cell(RAW_COLUMN_MAP["contract_sent_date"]),
+            "contract_signed_date": cell(RAW_COLUMN_MAP["contract_signed_date"]),
         })
 
     return contracts
