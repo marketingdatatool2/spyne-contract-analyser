@@ -133,49 +133,45 @@ def update_raw_status(contract_id, status):
 
 # ── Contract Analyser helpers ─────────────────────────────────────────────────
 
-def _ensure_analyser_headers(ws):
-    """Write column headers if the sheet is empty."""
-    existing = ws.row_values(1)
-    if not existing:
-        ws.update("A1", [ANALYSER_COLUMNS])
-    return ws.row_values(1)
-
-
-def _get_existing_contract_ids(ws, headers):
-    """Return a set of Contract IDs already present in the Analyser tab."""
-    try:
-        col_idx = headers.index("Contract ID")
-    except ValueError:
-        return set()
-
-    all_values = ws.get_all_values()
-    ids = set()
-    for row in all_values[1:]:
-        if len(row) > col_idx:
-            val = str(row[col_idx]).strip()
-            if val:
-                ids.add(val)
-    return ids
-
-
 def write_to_analyser(rows):
-    """Append rows to Contract Analyser. Skips if Contract ID already exists."""
+    """Append rows to Contract Analyser.
+
+    Skips all rows for a Contract ID that already has ANY entry in the sheet
+    (protects manual edits). Multiple rows with the same Contract ID (multi-rooftop
+    or multi-product contracts) are all written together.
+    """
     if not rows:
         return
 
     sh = _open_sheet()
     ws = sh.worksheet("Contract Analyser")
-    headers = _ensure_analyser_headers(ws)
-    existing_ids = _get_existing_contract_ids(ws, headers)
 
-    rows_to_write = []
-    for row_data in rows:
-        cid = str(row_data.get("Contract ID", "")).strip()
-        if cid in existing_ids:
-            continue  # Protect manually edited rows
-        row_values = [str(row_data.get(col, "") or "") for col in ANALYSER_COLUMNS]
-        rows_to_write.append(row_values)
-        existing_ids.add(cid)  # Avoid duplicates within this batch
+    # Read current sheet state once
+    all_values = ws.get_all_values()
+
+    # Write headers if sheet is empty
+    if not all_values:
+        ws.append_row(ANALYSER_COLUMNS, value_input_option="USER_ENTERED")
+        existing_ids = set()
+    else:
+        # Find Contract ID column index from existing headers
+        existing_headers = all_values[0]
+        try:
+            id_col = existing_headers.index("Contract ID")
+        except ValueError:
+            id_col = 0
+        existing_ids = {
+            str(row[id_col]).strip()
+            for row in all_values[1:]
+            if len(row) > id_col and str(row[id_col]).strip()
+        }
+
+    # Build rows to write — skip entire contract if ANY row already exists in sheet
+    rows_to_write = [
+        [str(row_data.get(col, "") or "") for col in ANALYSER_COLUMNS]
+        for row_data in rows
+        if str(row_data.get("Contract ID", "")).strip() not in existing_ids
+    ]
 
     if rows_to_write:
         ws.append_rows(rows_to_write, value_input_option="USER_ENTERED")
