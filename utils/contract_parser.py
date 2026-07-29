@@ -115,6 +115,31 @@ def parse_contract(contract_text, contract_id, contracted_month, contract_sent_d
     currency_code = (data.get("currency") or "USD").strip().upper()
     symbol = CURRENCY_SYMBOLS.get(currency_code, currency_code + " ")
 
+    STUDIO_PLANS = {"essential", "growth", "pro", "comprehensive", "lite"}
+    VINI_KEYWORDS = {"vini", "converse", "converse ai", "vini ai"}
+    STUDIO_KEYWORDS = {"studio", "studio ai", "image studio"}
+
+    # Normalize product values — AI sometimes puts "Vini" in studio_product or leaves product blank
+    for rooftop in rooftops:
+        for prod in rooftop.get("products", []):
+            p  = str(prod.get("product") or "").strip().lower()
+            sp = str(prod.get("studio_product") or "").strip().lower()
+
+            if p in VINI_KEYWORDS or sp in VINI_KEYWORDS:
+                prod["product"] = "Vini"
+                prod["studio_product"] = None
+            elif p in STUDIO_KEYWORDS or sp in STUDIO_PLANS:
+                prod["product"] = "Studio"
+                # keep studio_product as-is (Essential/Growth/Pro/Comprehensive/Lite)
+                if sp in VINI_KEYWORDS:
+                    prod["studio_product"] = None
+            elif prod.get("vini_agents"):
+                # has agent names → must be Vini
+                prod["product"] = "Vini"
+                prod["studio_product"] = None
+            elif prod.get("studio_product"):
+                prod["product"] = "Studio"
+
     def _val(v):
         return "" if v is None else v
 

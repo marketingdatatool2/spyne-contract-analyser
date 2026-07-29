@@ -137,7 +137,8 @@
     .stat-card.processed .value { color: var(--success); }
     .stat-card.failed .value   { color: var(--error); }
     .stat-card.total .value    { color: var(--text); }
-    .stat-card.manual .value   { color: #a78bfa; }
+    .stat-card.manual .value     { color: #a78bfa; }
+    .stat-card.duplicate .value  { color: #64748b; }
 
     /* ── Action panel ── */
     .action-panel {
@@ -362,6 +363,10 @@
       <span class="label">Manual Review</span>
       <span class="value" id="stat-manual">—</span>
     </div>
+    <div class="stat-card duplicate">
+      <span class="label">Duplicate</span>
+      <span class="value" id="stat-duplicate">—</span>
+    </div>
   </div>
 
   <!-- Action panel -->
@@ -456,6 +461,7 @@
       document.getElementById('stat-processed').textContent = d.processed ?? '—';
       document.getElementById('stat-failed').textContent = d.failed ?? '—';
       document.getElementById('stat-manual').textContent = d.manual_review ?? '—';
+      document.getElementById('stat-duplicate').textContent = d.duplicate ?? '—';
 
       const desc = d.pending > 0
         ? `${d.pending} contract(s) ready to be processed.`
