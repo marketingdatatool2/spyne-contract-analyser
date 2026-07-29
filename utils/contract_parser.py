@@ -103,13 +103,28 @@ def parse_contract(contract_text, contract_id, contracted_month, contract_sent_d
     except json.JSONDecodeError as e:
         raise ValueError(f"Claude returned invalid JSON: {e}\nRaw response: {raw[:500]}")
 
+    CURRENCY_SYMBOLS = {
+        "USD": "$", "EUR": "€", "INR": "₹", "GBP": "£",
+        "AED": "AED ", "KWD": "KWD ", "JPY": "¥", "BRL": "R$",
+    }
+
     rooftops = data.get("rooftops", [])
     contract_name = data.get("contract_name", "")
     contracted_arr = data.get("contracted_arr", "")
     num_rooftops = data.get("num_rooftops", len(rooftops)) or len(rooftops)
+    currency_code = (data.get("currency") or "USD").strip().upper()
+    symbol = CURRENCY_SYMBOLS.get(currency_code, currency_code + " ")
 
     def _val(v):
         return "" if v is None else v
+
+    def _money(v):
+        if v is None or v == "":
+            return ""
+        try:
+            return f"{symbol}{float(v):,.2f}"
+        except (ValueError, TypeError):
+            return str(v)
 
     if not rooftops:
         return [{
@@ -117,7 +132,7 @@ def parse_contract(contract_text, contract_id, contracted_month, contract_sent_d
             "Contract Name": contract_name,
             "#Rooftops": _val(num_rooftops),
             "Rooftop Name": "",
-            "Contracted ARR": _val(contracted_arr),
+            "Contracted ARR": _money(contracted_arr),
             "Product": "",
             "Studio Product": "",
             "Vini Agents": "",
@@ -139,12 +154,12 @@ def parse_contract(contract_text, contract_id, contracted_month, contract_sent_d
                 "Contract Name": contract_name,
                 "#Rooftops": num_rooftops,
                 "Rooftop Name": rooftop_name,
-                "Contracted ARR": _val(contracted_arr),
+                "Contracted ARR": _money(contracted_arr),
                 "Product": product.get("product", ""),
                 "Studio Product": _val(product.get("studio_product")),
                 "Vini Agents": _val(product.get("vini_agents")),
-                "Rooftop & Product Level MRR": _val(product.get("rooftop_product_mrr")),
-                "Rooftop & Product Level ARR": _val(product.get("rooftop_product_arr")),
+                "Rooftop & Product Level MRR": _money(product.get("rooftop_product_mrr")),
+                "Rooftop & Product Level ARR": _money(product.get("rooftop_product_arr")),
                 "Contracted Month": contracted_month,
                 "Contract Sent Date": contract_sent_date,
                 "Contract Signed Date": contract_signed_date,
