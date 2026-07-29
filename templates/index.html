@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Spyne Contract Analyser</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0f1117;
+      --surface: #1a1d27;
+      --surface2: #22263a;
+      --border: #2e3354;
+      --accent: #5b6af0;
+      --accent-hover: #6e7cf5;
+      --success: #22c55e;
+      --warning: #f59e0b;
+      --error: #ef4444;
+      --muted: #8b92b3;
+      --text: #e8eaf6;
+      --text-dim: #a0a8cc;
+      --radius: 12px;
+      --radius-sm: 8px;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── Header ── */
+    header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 0 32px;
+      height: 60px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 700;
+      font-size: 18px;
+      letter-spacing: -0.3px;
+    }
+
+    .logo-icon {
+      width: 32px;
+      height: 32px;
+      background: linear-gradient(135deg, var(--accent), #9b8cf5);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+    }
+
+    .badge {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      padding: 2px 10px;
+      border-radius: 20px;
+      font-size: 12px;
+      color: var(--muted);
+      font-weight: 500;
+    }
+
+    /* ── Main layout ── */
+    main {
+      flex: 1;
+      max-width: 1100px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 40px 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 28px;
+    }
+
+    /* ── Page title ── */
+    .page-title h1 {
+      font-size: 26px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+    }
+
+    .page-title p {
+      color: var(--text-dim);
+      margin-top: 6px;
+      font-size: 14px;
+    }
+
+    /* ── Stat cards ── */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 16px;
+    }
+
+    .stat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px 22px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .stat-card .label {
+      font-size: 12px;
+      color: var(--muted);
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .stat-card .value {
+      font-size: 32px;
+      font-weight: 700;
+      letter-spacing: -1px;
+    }
+
+    .stat-card.pending .value  { color: var(--warning); }
+    .stat-card.processed .value { color: var(--success); }
+    .stat-card.failed .value   { color: var(--error); }
+    .stat-card.total .value    { color: var(--text); }
+    .stat-card.manual .value   { color: #a78bfa; }
+
+    /* ── Action panel ── */
+    .action-panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px 28px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+
+    .action-info h2 {
+      font-size: 16px;
+      font-weight: 600;
+    }
+
+    .action-info p {
+      color: var(--text-dim);
+      font-size: 13px;
+      margin-top: 4px;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 11px 24px;
+      border-radius: var(--radius-sm);
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: all 0.15s;
+      white-space: nowrap;
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #fff;
+    }
+
+    .btn-primary:hover:not(:disabled) {
+      background: var(--accent-hover);
+      transform: translateY(-1px);
+    }
+
+    .btn-primary:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
+
+    .btn-secondary {
+      background: var(--surface2);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+
+    .btn-secondary:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    /* ── Progress bar ── */
+    .progress-wrap {
+      display: none;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .progress-wrap.visible { display: flex; }
+
+    .progress-bar-bg {
+      background: var(--surface2);
+      border-radius: 99px;
+      height: 6px;
+      overflow: hidden;
+    }
+
+    .progress-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent), #9b8cf5);
+      border-radius: 99px;
+      transition: width 0.4s ease;
+      width: 0%;
+    }
+
+    .progress-label {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    /* ── Log panel ── */
+    .log-section {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .log-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .log-header h3 {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .log-box {
+      background: #0a0c12;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px 20px;
+      height: 360px;
+      overflow-y: auto;
+      font-family: "SF Mono", "Fira Code", monospace;
+      font-size: 13px;
+      line-height: 1.7;
+      scroll-behavior: smooth;
+    }
+
+    .log-box::-webkit-scrollbar { width: 6px; }
+    .log-box::-webkit-scrollbar-track { background: transparent; }
+    .log-box::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+    .log-empty {
+      color: var(--muted);
+      font-style: italic;
+    }
+
+    .log-line { display: flex; gap: 10px; }
+    .log-time { color: #4a5280; flex-shrink: 0; }
+    .log-msg { flex: 1; word-break: break-word; }
+
+    .log-line.type-start      .log-msg { color: #60a5fa; font-weight: 600; }
+    .log-line.type-processing .log-msg { color: #c4b5fd; font-weight: 600; }
+    .log-line.type-log        .log-msg { color: var(--text-dim); }
+    .log-line.type-success    .log-msg { color: var(--success); }
+    .log-line.type-warning    .log-msg { color: var(--warning); }
+    .log-line.type-error      .log-msg { color: var(--error); }
+    .log-line.type-done       .log-msg { color: #60a5fa; font-weight: 600; border-top: 1px solid var(--border); padding-top: 8px; margin-top: 4px; }
+
+    /* ── Status dot ── */
+    .status-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--muted);
+      flex-shrink: 0;
+    }
+
+    .dot.active {
+      background: var(--success);
+      box-shadow: 0 0 6px var(--success);
+      animation: pulse 1.5s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+
+    /* ── Responsive ── */
+    @media (max-width: 600px) {
+      header { padding: 0 16px; }
+      main { padding: 24px 16px; }
+      .action-panel { flex-direction: column; align-items: flex-start; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">⚡</div>
+    Spyne
+  </div>
+  <span class="badge">Contract Analyser</span>
+</header>
+
+<main>
+
+  <div class="page-title">
+    <h1>Contract Analyser</h1>
+    <p>Automatically extracts rooftop-level data from contracts into your Google Sheet.</p>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats-grid">
+    <div class="stat-card total">
+      <span class="label">Total Contracts</span>
+      <span class="value" id="stat-total">—</span>
+    </div>
+    <div class="stat-card pending">
+      <span class="label">Pending</span>
+      <span class="value" id="stat-pending">—</span>
+    </div>
+    <div class="stat-card processed">
+      <span class="label">Processed</span>
+      <span class="value" id="stat-processed">—</span>
+    </div>
+    <div class="stat-card failed">
+      <span class="label">Failed</span>
+      <span class="value" id="stat-failed">—</span>
+    </div>
+    <div class="stat-card manual">
+      <span class="label">Manual Review</span>
+      <span class="value" id="stat-manual">—</span>
+    </div>
+  </div>
+
+  <!-- Action panel -->
+  <div class="action-panel">
+    <div class="action-info">
+      <h2>Analyze New Contracts</h2>
+      <p id="action-desc">Click to process all pending contracts from the Contract Raw tab.</p>
+    </div>
+    <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+      <button class="btn btn-secondary" onclick="loadStats()">↻ Refresh Stats</button>
+      <button class="btn btn-primary" id="analyze-btn" onclick="startAnalysis()">
+        ▶ Analyze Contracts
+      </button>
+    </div>
+  </div>
+
+  <!-- Progress bar -->
+  <div class="progress-wrap" id="progress-wrap">
+    <div class="progress-bar-bg">
+      <div class="progress-bar-fill" id="progress-fill"></div>
+    </div>
+    <span class="progress-label" id="progress-label">Initializing…</span>
+  </div>
+
+  <!-- Log -->
+  <div class="log-section">
+    <div class="log-header">
+      <h3>Activity Log</h3>
+      <div class="status-row">
+        <div class="dot" id="status-dot"></div>
+        <span id="status-text">Idle</span>
+      </div>
+    </div>
+    <div class="log-box" id="log-box">
+      <span class="log-empty">No activity yet. Click "Analyze Contracts" to begin.</span>
+    </div>
+  </div>
+
+</main>
+
+<script>
+  let eventSource = null;
+  let logBox = document.getElementById('log-box');
+
+  function now() {
+    return new Date().toLocaleTimeString('en-US', { hour12: false });
+  }
+
+  function clearLog() {
+    logBox.innerHTML = '';
+  }
+
+  function appendLog(type, message) {
+    const line = document.createElement('div');
+    line.className = `log-line type-${type}`;
+    line.innerHTML = `<span class="log-time">${now()}</span><span class="log-msg">${escHtml(message)}</span>`;
+    logBox.appendChild(line);
+    logBox.scrollTop = logBox.scrollHeight;
+  }
+
+  function escHtml(s) {
+    return String(s)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+  }
+
+  function setProgress(pct, label) {
+    document.getElementById('progress-fill').style.width = pct + '%';
+    document.getElementById('progress-label').textContent = label || '';
+    document.getElementById('progress-wrap').classList.toggle('visible', pct > 0);
+  }
+
+  function setStatus(active, text) {
+    document.getElementById('status-dot').className = 'dot' + (active ? ' active' : '');
+    document.getElementById('status-text').textContent = text;
+  }
+
+  function setAnalyzeBtn(disabled) {
+    const btn = document.getElementById('analyze-btn');
+    btn.disabled = disabled;
+    btn.textContent = disabled ? '⏳ Processing…' : '▶ Analyze Contracts';
+  }
+
+  async function loadStats() {
+    try {
+      const res = await fetch('/api/stats');
+      if (!res.ok) throw new Error(await res.text());
+      const d = await res.json();
+      document.getElementById('stat-total').textContent = d.total ?? '—';
+      document.getElementById('stat-pending').textContent = d.pending ?? '—';
+      document.getElementById('stat-processed').textContent = d.processed ?? '—';
+      document.getElementById('stat-failed').textContent = d.failed ?? '—';
+      document.getElementById('stat-manual').textContent = d.manual_review ?? '—';
+
+      const desc = d.pending > 0
+        ? `${d.pending} contract(s) ready to be processed.`
+        : 'All contracts are up to date.';
+      document.getElementById('action-desc').textContent = desc;
+    } catch (e) {
+      console.error('Stats error:', e);
+    }
+  }
+
+  async function startAnalysis() {
+    setAnalyzeBtn(true);
+    setStatus(true, 'Running…');
+    clearLog();
+    setProgress(1, 'Starting…');
+
+    // Close existing stream
+    if (eventSource) { eventSource.close(); eventSource = null; }
+
+    // Trigger analysis
+    try {
+      const res = await fetch('/api/analyze', { method: 'POST' });
+      if (!res.ok) {
+        const err = await res.json();
+        appendLog('error', err.error || 'Failed to start analysis.');
+        setAnalyzeBtn(false);
+        setStatus(false, 'Error');
+        setProgress(0, '');
+        return;
+      }
+    } catch (e) {
+      appendLog('error', 'Network error: ' + e.message);
+      setAnalyzeBtn(false);
+      setStatus(false, 'Error');
+      return;
+    }
+
+    // Open SSE stream
+    eventSource = new EventSource('/api/stream');
+
+    eventSource.onmessage = function(e) {
+      const msg = JSON.parse(e.data);
+      if (msg.type === 'ping') return;
+
+      appendLog(msg.type, msg.message);
+
+      if (msg.total && msg.current) {
+        const pct = Math.round((msg.current / msg.total) * 100);
+        setProgress(pct, `${msg.current} / ${msg.total} contracts`);
+      }
+
+      if (msg.type === 'done') {
+        eventSource.close();
+        eventSource = null;
+        setAnalyzeBtn(false);
+        setStatus(false, 'Idle');
+        setProgress(0, '');
+        loadStats();
+      }
+    };
+
+    eventSource.onerror = function() {
+      appendLog('error', 'Connection lost. Refresh the page if analysis appears stuck.');
+      eventSource.close();
+      eventSource = null;
+      setAnalyzeBtn(false);
+      setStatus(false, 'Disconnected');
+    };
+  }
+
+  // Initial load
+  loadStats();
+  // Refresh stats every 60s
+  setInterval(loadStats, 60000);
+</script>
+</body>
+</html>
