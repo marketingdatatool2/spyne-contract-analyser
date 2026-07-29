@@ -141,7 +141,7 @@ def write_to_analyser(rows):
     or multi-product contracts) are all written together.
     """
     if not rows:
-        return
+        return 0
 
     sh = _open_sheet()
     ws = sh.worksheet("Contract Analyser")
@@ -175,6 +175,8 @@ def write_to_analyser(rows):
 
     if rows_to_write:
         ws.append_rows(rows_to_write, value_input_option="USER_ENTERED")
+
+    return len(rows_to_write)
 
 
 # ── Stats helper ──────────────────────────────────────────────────────────────

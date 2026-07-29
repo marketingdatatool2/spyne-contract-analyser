@@ -123,15 +123,20 @@ def _run_analysis():
                 )
 
                 _emit({"type": "log", "message": f"  → Writing {len(rows)} row(s) to sheet..."})
-                write_to_analyser(rows)
+                written = write_to_analyser(rows)
+
+                if written == 0:
+                    update_raw_status(cid, "Duplicate")
+                    _emit({"type": "warning", "message": f"  ⚠ Contract {cid} skipped — already exists in Contract Analyser (marked Duplicate).", "current": i, "total": total})
+                    continue
 
                 final_status = rows[0].get("_status", "Processed") if rows else "Processed"
                 update_raw_status(cid, final_status)
 
                 if final_status == "Manual Review Needed":
-                    _emit({"type": "warning", "message": f"  ⚠ Contract {cid} needs manual review — {len(rows)} row(s) written.", "current": i, "total": total})
+                    _emit({"type": "warning", "message": f"  ⚠ Contract {cid} needs manual review — {written} row(s) written.", "current": i, "total": total})
                 else:
-                    _emit({"type": "success", "message": f"  ✓ Contract {cid} done — {len(rows)} row(s) written.", "current": i, "total": total})
+                    _emit({"type": "success", "message": f"  ✓ Contract {cid} done — {written} row(s) written.", "current": i, "total": total})
                     success_count += 1
 
             except Exception as exc:
