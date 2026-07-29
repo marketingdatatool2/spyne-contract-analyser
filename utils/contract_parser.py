@@ -14,6 +14,7 @@ Return this exact JSON structure:
 {{
   "contract_name": "<Legal Name of the customer/company as written in the contract>",
   "contracted_arr": <total annualized contract value as a plain number, no currency symbols, null if unknown>,
+  "num_rooftops": <total number of rooftops/stores in this contract as an integer>,
   "currency": "<USD, EUR, INR, or other — infer from contract>",
   "rooftops": [
     {{
@@ -105,18 +106,23 @@ def parse_contract(contract_text, contract_id, contracted_month, contract_sent_d
     rooftops = data.get("rooftops", [])
     contract_name = data.get("contract_name", "")
     contracted_arr = data.get("contracted_arr", "")
+    num_rooftops = data.get("num_rooftops", len(rooftops)) or len(rooftops)
+
+    def _val(v):
+        return "" if v is None else v
 
     if not rooftops:
         return [{
             "Contract ID": contract_id,
             "Contract Name": contract_name,
+            "#Rooftops": _val(num_rooftops),
             "Rooftop Name": "",
-            "Contracted ARR": contracted_arr,
-            "Rooftop & Product Level MRR": "",
-            "Rooftop & Product Level ARR": "",
+            "Contracted ARR": _val(contracted_arr),
             "Product": "",
             "Studio Product": "",
             "Vini Agents": "",
+            "Rooftop & Product Level MRR": "",
+            "Rooftop & Product Level ARR": "",
             "Contracted Month": contracted_month,
             "Contract Sent Date": contract_sent_date,
             "Contract Signed Date": contract_signed_date,
@@ -131,13 +137,14 @@ def parse_contract(contract_text, contract_id, contracted_month, contract_sent_d
             rows.append({
                 "Contract ID": contract_id,
                 "Contract Name": contract_name,
+                "#Rooftops": num_rooftops,
                 "Rooftop Name": rooftop_name,
-                "Contracted ARR": contracted_arr if contracted_arr is not None else "",
-                "Rooftop & Product Level MRR": product.get("rooftop_product_mrr", "") if product.get("rooftop_product_mrr") is not None else "",
-                "Rooftop & Product Level ARR": product.get("rooftop_product_arr", "") if product.get("rooftop_product_arr") is not None else "",
+                "Contracted ARR": _val(contracted_arr),
                 "Product": product.get("product", ""),
-                "Studio Product": product.get("studio_product", "") if product.get("studio_product") is not None else "",
-                "Vini Agents": product.get("vini_agents", "") if product.get("vini_agents") is not None else "",
+                "Studio Product": _val(product.get("studio_product")),
+                "Vini Agents": _val(product.get("vini_agents")),
+                "Rooftop & Product Level MRR": _val(product.get("rooftop_product_mrr")),
+                "Rooftop & Product Level ARR": _val(product.get("rooftop_product_arr")),
                 "Contracted Month": contracted_month,
                 "Contract Sent Date": contract_sent_date,
                 "Contract Signed Date": contract_signed_date,
